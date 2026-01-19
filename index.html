@@ -49,43 +49,50 @@
 
     <!-- ✅ 注意：從這裡開始才是 script，最後有 </script> -->
     <script>
-      // 這裡換成你的 URL & Publishable key
-     const supabase = window.supabase
-       .createClient(
-         "https://krfqqkukafhqieaygyka.supabase.co",
+      // ✅ 換成你的 URL 和 Publishable key
+      const supabase = window.supabase.createClient(
+          "https://krfqqkukafhqieaygyka.supabase.co",
          "sb-publishable-xxxxxxxxxxxxxxx"
-       );
+      );
 
       async function loadFruits() {
         const tbody = document.querySelector("#fruit-table tbody");
-        tbody.innerHTML = `<tr><td colspan="3">載入中...</td></tr>`;
 
-        const { data, error } = await supabase
-          .from("fruits")
-          .select("*")
-          .order("id");
+        try {
+          tbody.innerHTML = `<tr><td colspan="3">載入中（呼叫中）...</td></tr>`;
+          console.log("開始讀取 fruits...");
 
-        if (error) {
-          console.error(error);
-          tbody.innerHTML = `<tr><td colspan="3">讀取失敗</td></tr>`;
-          return;
+          const { data, error } = await supabase
+            .from("fruits")
+            .select("*")
+            .order("id");
+
+          console.log("查詢結果：", data, error);
+
+          if (error) {
+            tbody.innerHTML = `<tr><td colspan="3">錯誤：${error.message}</td></tr>`;
+            return;
+          }
+
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3">目前沒有資料</td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = "";
+          data.forEach((f) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${f.name}</td>
+              <td>${f.stock}</td>
+              <td>${f.price}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } catch (e) {
+          console.error("發生例外：", e);
+          tbody.innerHTML = `<tr><td colspan="3">例外：${e.message}</td></tr>`;
         }
-
-        if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="3">目前沒有資料</td></tr>`;
-          return;
-        }
-
-        tbody.innerHTML = "";
-        data.forEach((f) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${f.name}</td>
-            <td>${f.stock}</td>
-            <td>${f.price}</td>
-          `;
-          tbody.appendChild(tr);
-        });
       }
 
       loadFruits();
