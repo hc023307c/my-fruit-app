@@ -1,101 +1,125 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <title>水果庫存與價格</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>水果庫存與價格 (Supabase + Vercel)</title>
 
-    <!-- 載入 Supabase JS SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <style>
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        padding: 20px;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 500px;
-      }
-      th,
-      td {
-        padding: 8px 12px;
-        border-bottom: 1px solid #ccc;
-      }
-      th {
-        text-align: left;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>水果庫存與價格</h1>
+<style>
+  body {
+    font-family: system-ui;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 500px;
+  }
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #ccc;
+  }
+  th {
+    text-align: left;
+  }
+  .debug {
+    margin-top: 20px;
+    font-family: monospace;
+    color: #444;
+    background: #f6f6f6;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
 
-    <table id="fruit-table">
-      <thead>
-        <tr>
-          <th>名稱</th>
-          <th>庫存</th>
-          <th>價格</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="3">載入中...</td>
-        </tr>
-      </tbody>
-    </table>
+<h1>水果庫存與價格</h1>
 
-    <!-- ✅ 注意：從這裡開始才是 script，最後有 </script> -->
-    <script>
-      // ✅ 換成你的 URL 和 Publishable key
-      const supabase = window.supabase.createClient(
-          "https://krfqqkukafhqieaygyka.supabase.co",
-         "sb-publishable-xxxxxxxxxxxxxxx"
-      );
+<table id="fruit-table">
+  <thead>
+    <tr>
+      <th>名稱</th>
+      <th>庫存</th>
+      <th>價格</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td colspan="3">載入中...</td></tr>
+  </tbody>
+</table>
 
-      async function loadFruits() {
-        const tbody = document.querySelector("#fruit-table tbody");
+<div id="debug" class="debug"></div>
 
-        try {
-          tbody.innerHTML = `<tr><td colspan="3">載入中（呼叫中）...</td></tr>`;
-          console.log("開始讀取 fruits...");
+<script>
+(async () => {
+  const debug = (msg) => {
+    document.querySelector("#debug").innerHTML += msg + "\n";
+  };
 
-          const { data, error } = await supabase
-            .from("fruits")
-            .select("*")
-            .order("id");
+  debug("載入 Supabase SDK...");
 
-          console.log("查詢結果：", data, error);
+  if (!window.supabase) {
+    debug("❌ Supabase SDK 沒載到");
+    return;
+  }
 
-          if (error) {
-            tbody.innerHTML = `<tr><td colspan="3">錯誤：${error.message}</td></tr>`;
-            return;
-          }
+  debug("建立 Supabase client...");
 
-          if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="3">目前沒有資料</td></tr>`;
-            return;
-          }
+  // 👉👉👉 你只要改這裡的 key
+  const supabase = window.supabase.createClient(
+    "https://krfqqkukafhqieaygyka.supabase.co",
+    "sb-publishable-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" // ← 換成你的
+  );
 
-          tbody.innerHTML = "";
-          data.forEach((f) => {
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${f.name}</td>
-              <td>${f.stock}</td>
-              <td>${f.price}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-        } catch (e) {
-          console.error("發生例外：", e);
-          tbody.innerHTML = `<tr><td colspan="3">例外：${e.message}</td></tr>`;
-        }
-      }
+  debug("查詢 fruits...");
 
-      loadFruits();
-    </script>
-  </body>
+  const tbody = document.querySelector("#fruit-table tbody");
+
+  try {
+    const { data, error } = await supabase
+      .from("fruits")
+      .select("*")
+      .order("id");
+
+    debug("回傳 data = " + JSON.stringify(data, null, 2));
+    debug("回傳 error = " + JSON.stringify(error, null, 2));
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="3">❌ 錯誤：${error.message}</td></tr>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3">資料表是空的</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+    data.forEach((f) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${f.name}</td>
+        <td>${f.stock}</td>
+        <td>${f.price}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    debug("例外 = " + e.message);
+    tbody.innerHTML = `<tr><td colspan="3">例外：${e.message}</td></tr>`;
+  }
+})();
+</script>
+
+</body>
 </html>
